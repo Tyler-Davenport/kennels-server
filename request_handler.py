@@ -60,7 +60,7 @@ class HandleRequests(BaseHTTPRequestHandler):
         # This weird code sends a response back to the client
         self.wfile.write(f"{response}".encode())
 
-    # Here's a method on the class that overrides the parent's method.
+    # Here's a method on the class that overrides the parent's method.cascnca
     # It handles any POST request.
     def do_POST(self):
         """Handles POST requests to the server
