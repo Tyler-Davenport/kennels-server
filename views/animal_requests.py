@@ -1,3 +1,5 @@
+import sqlite3
+import json
 # Import the Animal class from the models package
 from models import Animal
 
@@ -12,23 +14,63 @@ ANIMALS = [
 
 # Function with a single parameter
 def get_single_animal(id):
-    # Variable to hold the found animal, if it exists
-    requested_animal = None
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
 
-    # Iterate the ANIMALS list above. Very similar to the
-    # for..of loops you used in JavaScript.
-    for animal in ANIMALS:
-        # Now that animal is an object, we access attributes using dot notation
-        if animal.id == id:
-            requested_animal = animal
+        db_cursor.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.breed,
+            a.status,
+            a.location_id,
+            a.customer_id
+        FROM animal a
+        WHERE a.id = ?
+        """, ( id, ))
 
-    # Convert the object to a dictionary before returning
-    return requested_animal.__dict__ if requested_animal else None
+        data = db_cursor.fetchone()
+
+        if data:
+            animal = Animal(data['id'], data['name'], data['breed'],
+                            data['status'], data['location_id'],
+                            data['customer_id'])
+            return animal.__dict__
+        else:
+            return {}  # optional: handle "not found" cases
+
 
 
 def get_all_animals():
-    # Return list of all animal objects converted to dictionaries
-    return [animal.__dict__ for animal in ANIMALS]
+    # establishes connection to database
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        # converts to dictionary
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.breed,
+            a.status,
+            a.location_id,
+            a.customer_id
+        FROM animal a
+        """)
+
+        animals = []
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            animal = Animal(row['id'], row['name'], row['breed'],
+                            row['status'], row['location_id'],
+                            row['customer_id'])
+            animals.append(animal.__dict__)  # Converts object to dictionary
+
+    return animals
+
 
 
 def create_animal(animal_data):

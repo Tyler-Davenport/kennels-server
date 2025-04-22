@@ -1,3 +1,5 @@
+import sqlite3
+import json
 # views/employee_requests.py
 
 # Import the Employee class from the models package
@@ -5,23 +7,57 @@ from models import Employee
 
 # Replaced dictionaries with Employee objects for better structure and future scalability
 EMPLOYEES = [
-    Employee(1, "Jenna Solis", 2)
+    Employee(1, "Jenna Solis", "7943 harrow drive", 2)
 ]
 
 # Function to get all employees
 def get_all_employees():
-    # Convert each Employee object to a dictionary before returning
-    return [employee.__dict__ for employee in EMPLOYEES]
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            e.id,
+            e.name,
+            e.address,
+            e.location_id
+        FROM employee e
+        """)
+
+        employees = []
+        dataset = db_cursor.fetchall()
+        
+        for row in dataset:
+            employee = Employee(row['id'], row['name'], row['address'], row['location_id'])
+            employees.append(employee.__dict__)
+            
+    return employees
+        
 
 # Function with a single parameter to get one employee
 def get_single_employee(id):
-    requested_employee = None
-    for employee in EMPLOYEES:
-        # Use object property instead of dictionary key
-        if employee.id == id:
-            requested_employee = employee
-    # Return dictionary version of the object
-    return requested_employee.__dict__ if requested_employee else None
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            e.id,
+            e.name,
+            e.address,
+            e.location_id
+        FROM employee e
+        WHERE e.id = ?
+        """, ( id, ))
+
+        data = db_cursor.fetchone()
+
+        if data:
+            employee = Employee(data['id'], data['name'], data['address'], data['location_id'])
+            return employee.__dict__
+        else:
+            return {}
 
 # Function to create a new employee
 def create_employee(employee_data):

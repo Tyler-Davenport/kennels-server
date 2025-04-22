@@ -1,3 +1,5 @@
+import sqlite3
+import json
 # views/customer_requests.py
 
 # Import the Customer class from the models package
@@ -5,22 +7,58 @@ from models import Customer
 
 # Replaced dictionaries with Customer objects for stronger data structure
 CUSTOMERS = [
-    Customer(1, "Ryan Tanay")
+    Customer(1, "Ryan Tanay", "122 Carriage DR.", "me@me.com", "password!")
 ]
 
 # Function to get all customer objects, returned as dictionaries
 def get_all_customers():
-    return [customer.__dict__ for customer in CUSTOMERS]
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            c.id,
+            c.name,
+            c.address,
+            c.email,
+            c.password
+        FROM customer c
+        """)
+
+        customers = []
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            customer = Customer(row['id'], row['name'], row['address'], row['email'], row['password'])
+            customers.append(customer.__dict__)
+
+    return customers
 
 # Function to get a single customer by ID
 def get_single_customer(id):
-    requested_customer = None
-    for customer in CUSTOMERS:
-        # Use dot notation to compare object property
-        if customer.id == id:
-            requested_customer = customer
-    # Convert object to dictionary before returning
-    return requested_customer.__dict__ if requested_customer else None
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            c.id,
+            c.name,
+            c.address,
+            c.email,
+            c.password
+        FROM customer c
+        WHERE c.id = ?
+        """, ( id, ))
+
+        data = db_cursor.fetchone()
+
+        if data:
+            customer = Customer(data['id'], data['name'], data['address'], data['email'], data['password'])
+            return customer.__dict__
+        else:
+            return {}
 
 # Function to create a new customer
 def create_customer(customer_data):

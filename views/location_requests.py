@@ -1,3 +1,5 @@
+import sqlite3
+import json
 # views/location_requests.py
 
 # Import the Location class from the models package
@@ -11,18 +13,49 @@ LOCATIONS = [
 
 # Function with a single parameter to get a single location
 def get_single_location(id):
-    requested_location = None
-    for location in LOCATIONS:
-        # Use object property instead of dictionary key
-        if location.id == id:
-            requested_location = location
-    # Return dictionary version of the object
-    return requested_location.__dict__ if requested_location else None
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            l.id,
+            l.name,
+            l.address
+        FROM location l
+        WHERE l.id = ?
+        """, ( id, ))
+
+        data = db_cursor.fetchone()
+
+        if data:
+            location = Location(data['id'], data['name'], data['address'])
+            return location.__dict__
+        else:
+            return {}
 
 # Function to get all locations
 def get_all_locations():
-    # Convert each Location object to a dictionary before returning
-    return [location.__dict__ for location in LOCATIONS]
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            l.id,
+            l.name,
+            l.address
+        FROM location l
+        """)
+
+        locations = []
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            location = Location(row['id'], row['name'], row['address'])
+            locations.append(location.__dict__)
+
+    return locations
 
 # Function to create a new location
 def create_location(location_data):
