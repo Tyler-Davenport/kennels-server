@@ -1,3 +1,5 @@
+import json
+from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from views import (
     get_all_animals, get_single_animal,
@@ -9,37 +11,42 @@ from views import (
     delete_location, delete_animal,
     delete_customer, delete_employee,
     update_customer, update_animal,
-    update_employee, update_location
+    update_employee, update_location,
+    get_customer_by_email, get_animal_by_location,
+    get_animal_by_status, get_employee_by_location
 )
 import json
 
 class HandleRequests(BaseHTTPRequestHandler):
-    """Controls the functionality of any GET, PUT, POST, DELETE requests to the server"""
+    # Controls the functionality of any GET, PUT, POST, DELETE requests to the server
 
     def parse_url(self, path):
-        """Parses the URL into resource and optional ID"""
-        path_params = path.split("/")
-        resource = path_params[1]
-        id = None
-
+        # Parses the URL into resource and optional ID
+        parsed_url = urlparse(path)
+        path_parts = parsed_url.path.split('/')
+        resource = path_parts[1]
+        
+        if parsed_url.query:
+            query = parse_qs(parsed_url.query)
+            return (resource, query)
+        
+        pk = None
         try:
-            id = int(path_params[2])
-        except IndexError:
+            pk = int(path_parts[2])
+        except (IndexError, ValueError):
             pass
-        except ValueError:
-            pass
-
-        return (resource, id)
+        
+        return (resource, pk)
 
     def _set_headers(self, status):
-        """Sets the status code, Content-Type and Access-Control-Allow-Origin headers on the response"""
+        # Sets the status code, Content-Type and Access-Control-Allow-Origin headers on the response
         self.send_response(status)
         self.send_header('Content-type', 'application/json')
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
 
     def do_OPTIONS(self):
-        """Sets the options headers for pre-flight requests"""
+        # Sets the options headers for pre-flight requests
         self.send_response(200)
         self.send_header('Access-Control-Allow-Origin', '*')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE')
@@ -47,35 +54,60 @@ class HandleRequests(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        """Handles GET requests to the server"""
+        # Handles GET requests to the server
         self._set_headers(200)
         response = {}
 
-        (resource, id) = self.parse_url(self.path)
+        parsed = self.parse_url(self.path)
 
-        if resource == "animals":
-            if id is not None:
-                response = get_single_animal(id)
-            else:
-                response = get_all_animals()
+        # If there's NO query string, run the regular logic (your original code)
+        if '?' not in self.path:
+            (resource, id) = parsed
 
-        elif resource == "locations":
-            if id is not None:
-                response = get_single_location(id)
-            else:
-                response = get_all_locations()
+            if resource == "animals":
+                if id is not None:
+                    response = get_single_animal(id)
+                else:
+                    response = get_all_animals()
 
-        elif resource == "employees":
-            if id is not None:
-                response = get_single_employee(id)
-            else:
-                response = get_all_employees()
+            elif resource == "locations":
+                if id is not None:
+                    response = get_single_location(id)
+                else:
+                    response = get_all_locations()
 
-        elif resource == "customers":
-            if id is not None:
-                response = get_single_customer(id)
-            else:
-                response = get_all_customers()
+            elif resource == "employees":
+                if id is not None:
+                    response = get_single_employee(id)
+                else:
+                    response = get_all_employees()
+
+            elif resource == "customers":
+                if id is not None:
+                    response = get_single_customer(id)
+                else:
+                    response = get_all_customers()
+
+        # If there IS a query string (like ?email=...), handle that separately
+        else:
+            (resource, query) = parsed
+
+            if resource == "customers":
+                if query.get('email'):
+                    response = get_customer_by_email(query['email'][0])
+                    
+            elif resource == "animals":
+                if query.get('location_id'):
+                    response = get_animal_by_location(int(query["location_id"][0]))
+                elif query.get('status'):
+                    response = get_animal_by_status(query["status"][0])
+
+            elif resource == "employees":
+                if query.get('location_id'):
+                    response = get_employee_by_location(int(query["location_id"][0]))
+            
+            # You can add more query filters here later!
+            # Like animals by status, employees by location, etc.
 
         self.wfile.write(json.dumps(response).encode())
 
