@@ -82,7 +82,7 @@ def create_animal(animal_data):
     new_animal = Animal(
         new_id,
         animal_data["name"],
-        animal_data["species"],
+        animal_data["breed"],
         animal_data["status"],
         animal_data["locationId"],
         animal_data["customerId"]
@@ -117,9 +117,61 @@ def update_animal(id, new_animal_data):
             ANIMALS[index] = Animal(
                 id,
                 new_animal_data["name"],
-                new_animal_data["species"],
+                new_animal_data["breed"],
                 new_animal_data["status"],
                 new_animal_data["locationId"],
                 new_animal_data["customerId"]
             )
             break
+
+def get_animal_by_location(location_id):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+        
+        db_cursor.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.breed,
+            a.status,
+            a.location_id,
+            a.customer_id
+        FROM Animal a
+        WHERE a.location_id = ?                     
+        """, (location_id,))
+        
+        animals = []
+        dataset = db_cursor.fetchall()
+        
+        for row in dataset:
+            animal = Animal(row['id'], row['name'], row['breed'], row['status'], row['location_id'], row['customer_id'])
+            animals.append(animal.__dict__)
+            
+    return animals
+
+def get_animal_by_status(status):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+        
+        db_cursor.execute("""
+        SELECT
+            a.id,
+            a.name,
+            a.breed,
+            a.status,
+            a.location_id,
+            a.customer_id
+        FROM Animal a
+        WHERE a.status = ?                     
+        """, (status,))
+        
+        animals = []
+        dataset = db_cursor.fetchall()
+        
+        for row in dataset:
+            animal = Animal(row['id'], row['name'], row['breed'], row['status'], row['location_id'], row['customer_id'])
+            animals.append(animal.__dict__)
+            
+    return animals

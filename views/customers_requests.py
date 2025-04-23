@@ -95,3 +95,28 @@ def update_customer(id, new_customer_data):
             # Replace the object with a new one using incoming data
             CUSTOMERS[index] = Customer(id, new_customer_data["name"])
             break
+        
+def get_customer_by_email(email):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+        
+        db_cursor.execute("""
+        SELECT
+            c.id,
+            c.name,
+            c.address,
+            c.email,
+            c.password
+        FROM Customer c
+        WHERE c.email = ?                     
+        """, (email,))
+        
+        customers = []
+        dataset = db_cursor.fetchall()
+        
+        for row in dataset:
+            customer = Customer(row['id'], row['name'], row['address'], row['email'], row['password'])
+            customers.append(customer.__dict__)
+            
+    return customers
