@@ -76,16 +76,13 @@ def create_employee(employee_data):
 
 # Function to delete an employee by ID
 def delete_employee(id):
-    employee_index = -1
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    for index, employee in enumerate(EMPLOYEES):
-        # Check ID using object property
-        if employee.id == id:
-            employee_index = index
-
-    # If employee was found, remove from list
-    if employee_index >= 0:
-        EMPLOYEES.pop(employee_index)
+        db_cursor.execute("""
+        DELETE FROM employee
+        WHERE id = ?
+        """, (id,))
 
 # Function to update an employee's data
 def update_employee(id, new_employee_data):

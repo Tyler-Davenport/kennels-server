@@ -96,33 +96,40 @@ def create_animal(animal_data):
 
 
 def delete_animal(id):
-    animal_index = -1
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Iterate the list to find the index of the animal object with the matching ID
-    for index, animal in enumerate(ANIMALS):
-        if animal.id == id:
-            animal_index = index
-
-    # If the animal was found, remove it using pop
-    if animal_index >= 0:
-        ANIMALS.pop(animal_index)
+        db_cursor.execute("""
+        DELETE FROM animal
+        WHERE id = ?
+        """, (id, ))
 
 
-def update_animal(id, new_animal_data):
-    # Iterate the ANIMALS list, but use enumerate() so that
-    # you can access the index value of each item.
-    for index, animal in enumerate(ANIMALS):
-        if animal.id == id:
-            # Replace the existing animal with a new Animal object built from new data
-            ANIMALS[index] = Animal(
-                id,
-                new_animal_data["name"],
-                new_animal_data["breed"],
-                new_animal_data["status"],
-                new_animal_data["locationId"],
-                new_animal_data["customerId"]
-            )
-            break
+def update_animal(id, new_animal):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        UPDATE Animal
+            SET
+                name = ?,
+                breed = ?,
+                status = ?,
+                location_id = ?,
+                customer_id = ?
+        WHERE id = ?
+        """, (new_animal['name'], new_animal['breed'],
+              new_animal['status'], new_animal['locationId'],
+              new_animal['customerId'], id))
+
+        rows_affected = db_cursor.rowcount
+
+    # Determine if the update actually happened
+    if rows_affected == 0:
+        return False  # This triggers a 404 response
+    else:
+        return True   # This triggers a 204 No Content response
+
 
 def get_animal_by_location(location_id):
     with sqlite3.connect("./kennel.sqlite3") as conn:
