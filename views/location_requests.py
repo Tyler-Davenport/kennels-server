@@ -12,11 +12,13 @@ LOCATIONS = [
 ]
 
 # Function with a single parameter to get a single location
+# Function with a single parameter to get a single location
 def get_single_location(id):
     with sqlite3.connect("./kennel.sqlite3") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
+        # First, get the Location info
         db_cursor.execute("""
         SELECT
             l.id,
@@ -24,15 +26,70 @@ def get_single_location(id):
             l.address
         FROM location l
         WHERE l.id = ?
-        """, ( id, ))
-
+        """, (id,))
+        
         data = db_cursor.fetchone()
 
         if data:
             location = Location(data['id'], data['name'], data['address'])
-            return location.__dict__
+            location_dict = location.__dict__
+
+            # Now get all Employees at this Location
+            db_cursor.execute("""
+            SELECT
+                e.id,
+                e.name,
+                e.address,
+                e.location_id
+            FROM employee e
+            WHERE e.location_id = ?
+            """, (id,))
+            
+            employees = []
+            employee_dataset = db_cursor.fetchall()
+
+            for row in employee_dataset:
+                employees.append({
+                    "id": row["id"],
+                    "name": row["name"],
+                    "address": row["address"],
+                    "location_id": row["location_id"]
+                })
+
+            # Now get all Animals at this Location
+            db_cursor.execute("""
+            SELECT
+                a.id,
+                a.name,
+                a.breed,
+                a.status,
+                a.location_id,
+                a.customer_id
+            FROM animal a
+            WHERE a.location_id = ?
+            """, (id,))
+            
+            animals = []
+            animal_dataset = db_cursor.fetchall()
+
+            for row in animal_dataset:
+                animals.append({
+                    "id": row["id"],
+                    "name": row["name"],
+                    "breed": row["breed"],
+                    "status": row["status"],
+                    "location_id": row["location_id"],
+                    "customer_id": row["customer_id"]
+                })
+
+            # Attach employees and animals to the location dictionary
+            location_dict["employees"] = employees
+            location_dict["animals"] = animals
+
+            return location_dict
         else:
             return {}
+
 
 # Function to get all locations
 def get_all_locations():
