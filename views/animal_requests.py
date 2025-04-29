@@ -97,26 +97,30 @@ def get_all_animals():
 
 
 
-def create_animal(animal_data):
-    # Get the ID of the last animal in the list and increment it
-    max_id = ANIMALS[-1].id
-    new_id = max_id + 1
+import sqlite3
 
-    # Create a new Animal instance from the dictionary data provided
-    new_animal = Animal(
-        new_id,
-        animal_data["name"],
-        animal_data["breed"],
-        animal_data["status"],
-        animal_data["locationId"],
-        animal_data["customerId"]
-    )
+def create_animal(new_animal):
+    with sqlite3.connect("./kennel.sqlite3") as conn:
+        db_cursor = conn.cursor()
 
-    # Append the object to the list
-    ANIMALS.append(new_animal)
+        db_cursor.execute("""
+        INSERT INTO Animal
+            ( name, breed, status, location_id, customer_id )
+        VALUES
+            ( ?, ?, ?, ?, ? );
+        """, (
+            new_animal['name'],
+            new_animal['breed'],
+            new_animal['status'],
+            new_animal['locationId'],
+            new_animal['customerId'],
+        ))
 
-    # Return a dictionary representation of the new object
-    return new_animal.__dict__
+        id = db_cursor.lastrowid
+        new_animal['id'] = id
+
+    return new_animal
+
 
 
 def delete_animal(id):
